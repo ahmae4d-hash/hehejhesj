@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>نظام إدارة البيانات المتكامل</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      :root {
+        --primary: #2c3e50;
+        --error: #e74c3c;
+        --success: #27ae60;
+        --warning: #f1c40f;
+        --light: #f4f7f6;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: var(--light);
+        margin: 0;
+        padding: 20px;
+        direction: rtl;
+      }
+      .container {
+        max-width: 900px;
+        margin: auto;
+      }
+      .card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        border-top: 5px solid var(--primary);
+      }
+      .edit-mode {
+        border-top-color: var(--warning) !important;
+        background: #fffdf5;
+      }
+      h2,
+      h3 {
+        color: var(--primary);
+        margin-top: 0;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+      .input-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      .input-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        box-sizing: border-box;
+        font-size: 16px;
+        outline: none;
+        transition: 0.3s;
+      }
+      input:focus {
+        border-color: var(--primary);
+      }
+      input.invalid {
+        border-color: var(--error);
+        background: #fff8f8;
+      }
+
+      /* الكاميرا */
+      .camera-box {
+        border: 2px dashed #ccc;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        margin: 15px 0;
+        background: #fafafa;
+      }
+      video {
+        width: 100%;
+        max-width: 320px;
+        border-radius: 8px;
+        background: #000;
+      }
+      #capturedImg {
+        width: 120px;
+        height: 120px;
+        border: 3px solid var(--success);
+        border-radius: 8px;
+        cursor: pointer;
+        display: none;
+        margin: 10px auto;
+        object-fit: cover;
+      }
+
+      .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        margin: 5px;
+        transition: 0.3s;
+      }
+      .btn-main {
+        background: var(--primary);
+        color: white;
+      }
+      .btn-success {
+        background: var(--success);
+        color: white;
+        width: 100%;
+        font-size: 18px;
+        margin-top: 10px;
+      }
+      .btn-danger {
+        background: var(--error);
+        color: white;
+      }
+      .btn-warning {
+        background: var(--warning);
+        color: #000;
+      }
+
+      /* الجدول */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        background: white;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: center;
+        font-size: 14px;
+      }
+      th {
+        background: var(--primary);
+        color: white;
+      }
+      tr:hover {
+        background-color: #f1f1f1;
+      }
+
+      /* الطباعة */
+      #printArea {
+        display: none;
+        width: 210mm;
+        height: 297mm;
+        background: white;
+        padding: 20mm;
+        position: relative;
+        box-sizing: border-box;
+        margin: auto;
+      }
+      .print-photo {
+        width: 3.5cm;
+        height: 4.5cm;
+        border: 1px solid #000;
+        position: absolute;
+        top: 20mm;
+        left: 20mm;
+        object-fit: cover;
+      }
+      .sigs {
+        position: absolute;
+        bottom: 30mm;
+        width: 85%;
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+      }
+
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        #printArea {
+          display: block !important;
+        }
+        body {
+          padding: 0;
+          background: white;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container no-print">
+      <div class="card" id="mainForm">
+        <h2 id="formTitle">📝 تسجيل بيانات جديد</h2>
+        <div class="input-grid">
+          <div class="input-group">
+            <label>الاسم رباعي</label>
+            <input
+              type="text"
+              id="fullName"
+              placeholder="الاسم رباعي بالعربي"
+            />
+          </div>
+          <div class="input-group">
+            <label>رقم البطاقة (14 رقم)</label>
+            <input
+              type="text"
+              id="idNumber"
+              maxlength="14"
+              oninput="this.value=this.value.replace(/\D/g,'')"
+            />
+          </div>
+          <div class="input-group">
+            <label>رقم الهاتف</label>
+            <input
+              type="text"
+              id="phone"
+              maxlength="11"
+              oninput="this.value=this.value.replace(/\D/g,'')"
+            />
+          </div>
+          <div class="input-group">
+            <label>رقم الخدمة</label>
+            <input type="text" id="serviceId" />
+          </div>
+        </div>
+        <div class="input-group">
+          <label>المهنة</label>
+          <input type="text" id="job" />
+        </div>
+
+        <div class="camera-box">
+          <video id="video" autoplay playsinline></video>
+          <canvas id="canvas" style="display: none"></canvas>
+          <img id="capturedImg" title="اضغط للمعاينة" />
+          <div style="margin-top: 10px">
+            <button class="btn btn-main" onclick="startCam()">
+              تشغيل الكاميرا
+            </button>
+            <button
+              id="capBtn"
+              class="btn btn-warning"
+              style="display: none"
+              onclick="takeSnap()"
+            >
+              التقاط الصورة
+            </button>
+            <button
+              id="retakeBtn"
+              class="btn btn-danger"
+              style="display: none"
+              onclick="resetCam()"
+            >
+              حذف الصورة
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-success" id="saveBtn" onclick="processData()">
+          معاينة وحفظ السجل
+        </button>
+        <button
+          class="btn btn-danger"
+          id="cancelEdit"
+          style="display: none; width: 100%"
+          onclick="clearForm()"
+        >
+          إلغاء التعديل
+        </button>
+      </div>
+
+      <div class="card">
+        <h3>🔍 سجل العمليات الأخيرة</h3>
+        <input
+          type="text"
+          id="searchInput"
+          onkeyup="searchLogs()"
+          placeholder="ابحث بالاسم أو رقم البطاقة..."
+        />
+        <div style="overflow-x: auto">
+          <table id="logTable">
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>البطاقة</th>
+                <th>التاريخ</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+        <button
+          class="btn btn-main"
+          style="margin-top: 15px; background: #1d6f42; width: 100%"
+          onclick="exportExcel()"
+        >
+          تصدير كافة السجلات إلى Excel
+        </button>
+      </div>
+    </div>
+
+    <div id="printArea">
+      <img id="pImg" class="print-photo" />
+      <div style="margin-top: 60mm; font-size: 20pt; line-height: 2">
+        <h1 style="text-align: center; text-decoration: underline">
+          استمارة بيانات عميل
+        </h1>
+        <p><strong>الاسم:</strong> <span id="pName"></span></p>
+        <p><strong>رقم البطاقة:</strong> <span id="pId"></span></p>
+        <p><strong>الهاتف:</strong> <span id="pPhone"></span></p>
+        <p><strong>رقم الخدمة:</strong> <span id="pServ"></span></p>
+        <p><strong>المهنة:</strong> <span id="pJob"></span></p>
+        <p><strong>التاريخ:</strong> <span id="pDate"></span></p>
+      </div>
+      <div class="sigs">
+        <div>توقيع المختص<br /><br />....................</div>
+        <div>توقيع المواطن<br /><br />....................</div>
+      </div>
+    </div>
+
+    <div
+      id="printBtns"
+      class="no-print"
+      style="display: none; text-align: center; padding: 20px"
+    >
+      <button
+        class="btn btn-main"
+        style="font-size: 20px; padding: 15px 40px"
+        onclick="window.print()"
+      >
+        🖨️ تنفيذ الطباعة الآن
+      </button>
+      <button class="btn btn-danger" onclick="location.reload()">
+        الرجوع للرئيسية
+      </button>
+    </div>
+
+    <script>
+      let photo = null;
+      let editIndex = null;
+      const v = document.getElementById("video");
+      const cImg = document.getElementById("capturedImg");
+
+      // الكاميرا
+      async function startCam() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          v.srcObject = stream;
+          document.getElementById("capBtn").style.display = "inline-block";
+        } catch (e) {
+          alert("تعذر فتح الكاميرا");
+        }
+      }
+
+      function takeSnap() {
+        const canv = document.getElementById("canvas");
+        canv.width = v.videoWidth;
+        canv.height = v.videoHeight;
+        canv.getContext("2d").drawImage(v, 0, 0);
+        photo = canv.toDataURL("image/png");
+        cImg.src = photo;
+        v.style.display = "none";
+        cImg.style.display = "block";
+        document.getElementById("capBtn").style.display = "none";
+        document.getElementById("retakeBtn").style.display = "inline-block";
+      }
+
+      function resetCam() {
+        photo = null;
+        v.style.display = "block";
+        cImg.style.display = "none";
+        document.getElementById("capBtn").style.display = "inline-block";
+        document.getElementById("retakeBtn").style.display = "none";
+      }
+
+      // التحقق والحفظ
+      function processData() {
+        const name = document.getElementById("fullName");
+        const id = document.getElementById("idNumber");
+        const ph = document.getElementById("phone");
+
+        if (name.value.trim().split(/\s+/).length < 4)
+          return showErr(name, "يجب إدخال الاسم رباعي");
+        if (id.value.length !== 14) return showErr(id, "رقم البطاقة ناقص");
+        if (ph.value.length !== 11) return showErr(ph, "رقم الهاتف غير صحيح");
+        if (!photo) return alert("يرجى التقاط صورة العميل");
+
+        const record = {
+          name: name.value,
+          id: id.value,
+          ph: ph.value,
+          serv: document.getElementById("serviceId").value,
+          job: document.getElementById("job").value,
+          date: new Date().toLocaleDateString("ar-EG"),
+          img: photo,
+        };
+
+        let history = JSON.parse(localStorage.getItem("logs")) || [];
+
+        if (editIndex !== null) {
+          history[editIndex] = record;
+          editIndex = null;
+        } else {
+          history.push(record);
+        }
+
+        localStorage.setItem("logs", JSON.stringify(history));
+
+        // تعبئة بيانات الطباعة
+        document.getElementById("pName").innerText = record.name;
+        document.getElementById("pId").innerText = record.id;
+        document.getElementById("pPhone").innerText = record.ph;
+        document.getElementById("pServ").innerText = record.serv;
+        document.getElementById("pJob").innerText = record.job;
+        document.getElementById("pDate").innerText = record.date;
+        document.getElementById("pImg").src = record.img;
+
+        // تبديل الشاشات
+        document.querySelector(".container").style.display = "none";
+        document.getElementById("printArea").style.display = "block";
+        document.getElementById("printBtns").style.display = "block";
+      }
+
+      function showErr(el, m) {
+        el.classList.add("invalid");
+        el.focus();
+        alert(m);
+      }
+
+      // إدارة السجل
+      function loadLogs() {
+        const history = JSON.parse(localStorage.getItem("logs")) || [];
+        const body = document.getElementById("logBody");
+        body.innerHTML = history
+          .slice()
+          .reverse()
+          .map((r, i) => {
+            let actualIdx = history.length - 1 - i;
+            return `
+            <tr>
+                <td>${r.name}</td>
+                <td>${r.id}</td>
+                <td>${r.date}</td>
+                <td>
+                    <button class="btn btn-warning" style="padding:5px 10px;" onclick="editLog(${actualIdx})">تعديل</button>
+                    <button class="btn btn-danger" style="padding:5px 10px;" onclick="delLog(${actualIdx})">حذف</button>
+                </td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      function editLog(idx) {
+        const history = JSON.parse(localStorage.getItem("logs"));
+        const r = history[idx];
+
+        document.getElementById("fullName").value = r.name;
+        document.getElementById("idNumber").value = r.id;
+        document.getElementById("phone").value = r.ph;
+        document.getElementById("serviceId").value = r.serv;
+        document.getElementById("job").value = r.job;
+        photo = r.img;
+        cImg.src = photo;
+
+        v.style.display = "none";
+        cImg.style.display = "block";
+        document.getElementById("retakeBtn").style.display = "inline-block";
+
+        editIndex = idx;
+        document.getElementById("mainForm").classList.add("edit-mode");
+        document.getElementById("formTitle").innerText =
+          "✏️ تعديل بيانات السجل";
+        document.getElementById("cancelEdit").style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function clearForm() {
+        location.reload();
+      }
+
+      function delLog(i) {
+        if (confirm("هل أنت متأكد من الحذف؟")) {
+          let h = JSON.parse(localStorage.getItem("logs"));
+          h.splice(i, 1);
+          localStorage.setItem("logs", JSON.stringify(h));
+          loadLogs();
+        }
+      }
+
+      function searchLogs() {
+        let val = document.getElementById("searchInput").value.toLowerCase();
+        let rows = document.querySelectorAll("#logBody tr");
+        rows.forEach(
+          (r) =>
+            (r.style.display = r.innerText.toLowerCase().includes(val)
+              ? ""
+              : "none")
+        );
+      }
+
+      function exportExcel() {
+        const h = JSON.parse(localStorage.getItem("logs")) || [];
+        if (h.length === 0) return alert("السجل فارغ");
+        const ws = XLSX.utils.json_to_sheet(
+          h.map((item) => ({ ...item, img: "مرفق صورة" }))
+        );
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Logs");
+        XLSX.writeFile(wb, "Data_Report.xlsx");
+      }
+
+      window.onload = loadLogs;
+    </script>
+  </body>
+</html>
